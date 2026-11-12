@@ -30,17 +30,12 @@ if (isDevelopment) {
 } else {
 
 // Fichiers à mettre en cache lors de l'installation
+// Les routes HTML SPA ne sont jamais pré-cachées en Cache-First pour éviter de figer une ancienne version
 const STATIC_FILES = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/favicon.ico',
   '/pwa-icons/icon-192x192.png',
-  '/pwa-icons/icon-512x512.png',
-  // Pages principales
-  '/login',
-  '/plan-appel',
-  '/objections'
+  '/pwa-icons/icon-512x512.png'
 ];
 
 // Installation du Service Worker
@@ -117,12 +112,39 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Stratégie Network-First pour les documents HTML / navigations SPA (évite de servir un index.html obsolète)
+  if (request.mode === 'navigate' ||
+      request.destination === 'document' ||
+      url.pathname === '/' ||
+      url.pathname === '/index.html') {
+    event.respondWith(
+      fetch(request, { cache: 'no-store' })
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(STATIC_CACHE).then((cache) => {
+              return cache.put('/index.html', responseClone);
+            }).catch((error) => {
+              console.warn('[SW] HTML cache update failed:', error);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match('/index.html').then((cachedHtml) => {
+            return cachedHtml || caches.match(request);
+          });
+        })
+    );
+
+    return;
+  }
+
   // Stratégie pour les fichiers statiques
   if (STATIC_FILES.includes(url.pathname) ||
       request.destination === 'style' ||
       request.destination === 'script' ||
-      request.destination === 'image' ||
-      request.destination === 'document') {
+      request.destination === 'image') {
 
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
@@ -141,9 +163,6 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         }).catch(() => {
-          if (request.destination === 'document') {
-            return caches.match('/index.html');
-          }
           // Pour les scripts/styles/images, retourner undefined n'est pas valide
           // On tente de retourner le cache comme fallback
           return caches.match(request);
@@ -190,6 +209,20 @@ self.addEventListener('message', (event) => {
       buildVersion: BUILD_VERSION,
       timestamp: Date.now()
     });
+  }
+
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    event.waitUntil(
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => caches.delete(cacheName))
+        );
+      }).then(() => {
+        if (event.ports && event.ports[0]) {
+          event.ports[0].postMessage({ success: true });
+        }
+      })
+    );
   }
 });
 
