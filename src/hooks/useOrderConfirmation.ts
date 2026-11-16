@@ -1,9 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { FormEvent } from 'react';
 import { useCart, useProspect, useCampaign, useUser, useDialer } from './index';
-import type { AddressSelectionResult, ModePaiement, DelaisLivraison } from '../utils/types/index.ts';
+import type { AddressSelectionResult, ModePaiement, DelaisLivraison, DelaiFacturation } from '../utils/types/index.ts';
 import { closingService } from '../API/services/index.ts';
-import { buildVentePayload, getCampaignVariant, getProspectDeliveryPrefill, validateOrderForm, capitalizeAddress, synchronizeOrderCompanyNames } from '../utils/scripts/index.ts';
+import { buildVentePayload, getCampaignVariant, getProspectDeliveryPrefill, validateOrderForm, capitalizeAddress, synchronizeOrderCompanyNames, formatCurrency } from '../utils/scripts/index.ts';
+
+const CIGALES_DELIVERY_DELAYS: DelaisLivraison[] = [2, 4];
+const DELIVERY_DELAYS: DelaisLivraison[] = [2, 3, 4];
 
 interface FormData {
   raison_sociale_facturation: string;
@@ -23,6 +26,7 @@ interface FormData {
   raison_sociale: string;
   raison_sociale_livraison: string;
   delais_livraison: DelaisLivraison;
+  delai_facturation: DelaiFacturation;
   civilite: string;
   nom_contact: string;
   plage_horaire_livraison: string;
@@ -38,6 +42,9 @@ export function useOrderConfirmation({ onClose, onSuccess }: UseOrderConfirmatio
   const { items, total, clearCart } = useCart();
   const { currentProspect, createVente, updateProspect } = useProspect();
   const { currentCampaign } = useCampaign();
+  const campaignId = currentCampaign?.id_campagne;
+  const hasCigalesShipping = campaignId === 7;
+  const defaultDeliveryDelay = hasCigalesShipping ? 2 : 3;
   const { user } = useUser();
   const {
     currentAppelId,
@@ -75,12 +82,29 @@ export function useOrderConfirmation({ onClose, onSuccess }: UseOrderConfirmatio
         ? (currentProspect?.raison_sociale || '')
         : ''
     ),
-    delais_livraison: 2,
+    delais_livraison: defaultDeliveryDelay,
+    delai_facturation: 30,
     civilite: currentProspect?.civilite || '',
     nom_contact: `${currentProspect?.prenom || ''} ${currentProspect?.nom || ''}`.trim(),
     plage_horaire_livraison: '',
     livraison_offerte: false,
   });
+
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      delais_livraison: defaultDeliveryDelay,
+      delai_facturation: 30,
+      livraison_offerte: false,
+    }));
+  }, [campaignId, defaultDeliveryDelay]);
+
+  const deliveryDelays = hasCigalesShipping ? CIGALES_DELIVERY_DELAYS : DELIVERY_DELAYS;
+  const shippingCost = hasCigalesShipping && total < 300 && !formData.livraison_offerte ? 30 : 0;
+  const totalHT = total + shippingCost;
+  const totalTTC = totalHT * 1.2;
+  const shippingLabel = shippingCost > 0 ? formatCurrency(shippingCost)
+    : total < 300 && formData.livraison_offerte ? 'Offerts (geste commercial)' : 'Offerts';
 
   // Met à jour le formData quand le prospect change
   useEffect(() => {
@@ -368,7 +392,11 @@ export function useOrderConfirmation({ onClose, onSuccess }: UseOrderConfirmatio
 
   return {
     items,
-    total,
+    totalHT,
+    totalTTC,
+    shippingLabel,
+    hasCigalesShipping,
+    deliveryDelays,
     availableModesPaiement,
     formData,
     isSubmitting,

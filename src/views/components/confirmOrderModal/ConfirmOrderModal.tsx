@@ -14,11 +14,6 @@ const PAYMENT_LABELS: Record<ModePaiement, string> = {
   Virement: 'Virement bancaire',
 };
 
-const delaisOptions = [
-  { value: 2, label: '2 semaines' },
-  { value: 4, label: '4 semaines' },
-];
-
 interface ConfirmOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -27,22 +22,14 @@ interface ConfirmOrderModalProps {
 
 export default function ConfirmOrderModal({ isOpen, onClose, onSuccess }: ConfirmOrderModalProps) {
   const {
-    items, total, availableModesPaiement,
+    items, totalHT, totalTTC, hasCigalesShipping, shippingLabel, deliveryDelays, availableModesPaiement,
     formData, isSubmitting, error, validationErrors,
     handleInputChange, handleSelectAddressFacturation, handleSelectAddressLivraison, handleSubmit,
   } = useOrderConfirmation({ onClose, onSuccess });
 
   if (!isOpen) return null;
 
-  const fraisLivraisonHT = total >= 300 || formData.livraison_offerte ? 0 : 30;
-  const totalHTAvecLivraison = total + fraisLivraisonHT;
-  const totalTTCAvecLivraison = totalHTAvecLivraison * 1.2;
-  const libelleLivraison = fraisLivraisonHT === 0
-    ? formData.livraison_offerte && total < 300
-      ? 'Offerts (geste commercial)'
-      : 'Offerts'
-    : formatCurrency(fraisLivraisonHT);
-
+  const deliveryOptions = deliveryDelays.map((value) => ({ value, label: `${value} semaines` }));
 
   return (
     <div className="confirm-order-modal__overlay" onClick={onClose}>
@@ -138,10 +125,10 @@ export default function ConfirmOrderModal({ isOpen, onClose, onSuccess }: Confir
                   <div className="confirm-order-modal__form-group confirm-order-modal__form-group--full">
                     <label htmlFor="delais_livraison"><FaClock /> Délai de livraison</label>
                     <Select
-                      id="delais_livraison"
-                      value={delaisOptions.find(opt => opt.value === formData.delais_livraison)}
+                      inputId="delais_livraison"
+                      value={deliveryOptions.find(opt => opt.value === formData.delais_livraison)}
                       onChange={(selected) => selected && handleInputChange('delais_livraison', selected.value)}
-                      options={delaisOptions}
+                      options={deliveryOptions}
                       isDisabled={isSubmitting}
                       className="confirm-order-modal__select"
                       classNamePrefix="react-select"
@@ -364,28 +351,32 @@ export default function ConfirmOrderModal({ isOpen, onClose, onSuccess }: Confir
                 <div className="confirm-order-modal__cart-total">
                   <div className="confirm-order-modal__cart-total-row">
                     <span>Total HT</span>
-                    <strong>{formatCurrency(totalHTAvecLivraison)}</strong>
+                    <strong>{formatCurrency(totalHT)}</strong>
                   </div>
-                  <div className="confirm-order-modal__cart-total-row confirm-order-modal__cart-total-row--muted">
-                    <span>dont livraison</span>
-                    <span>{libelleLivraison}</span>
-                  </div>
+                  {hasCigalesShipping && (
+                    <div className="confirm-order-modal__cart-total-row confirm-order-modal__cart-total-row--muted">
+                      <span>dont livraison</span>
+                      <span>{shippingLabel}</span>
+                    </div>
+                  )}
                   <div className="confirm-order-modal__cart-total-row confirm-order-modal__cart-total-row--ttc">
                     <span>Total TTC</span>
-                    <strong>{formatCurrency(totalTTCAvecLivraison)}</strong>
+                    <strong>{formatCurrency(totalTTC)}</strong>
                   </div>
                 </div>
 
-                <div className="confirm-order-modal__checkbox-group" style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px dashed #e5e7eb' }}>
-                  <input
-                    type="checkbox"
-                    id="livraison_offerte"
-                    checked={formData.livraison_offerte}
-                    onChange={(e) => handleInputChange('livraison_offerte', e.target.checked)}
-                    disabled={isSubmitting}
-                  />
-                  <label htmlFor="livraison_offerte">Offrir la livraison (geste commercial)</label>
-                </div>
+                {hasCigalesShipping && (
+                  <div className="confirm-order-modal__checkbox-group" style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px dashed #e5e7eb' }}>
+                    <input
+                      type="checkbox"
+                      id="livraison_offerte"
+                      checked={formData.livraison_offerte}
+                      onChange={(e) => handleInputChange('livraison_offerte', e.target.checked)}
+                      disabled={isSubmitting}
+                    />
+                    <label htmlFor="livraison_offerte">Offrir la livraison (geste commercial)</label>
+                  </div>
+                )}
               </div>
 
               <div className="confirm-order-modal__section">
@@ -411,6 +402,19 @@ export default function ConfirmOrderModal({ isOpen, onClose, onSuccess }: Confir
                     ))}
                   </div>
                 )}
+                <div className="confirm-order-modal__form-group confirm-order-modal__billing-delay">
+                  <label htmlFor="delai_facturation">Délai de facturation</label>
+                  <select
+                    id="delai_facturation"
+                    className="confirm-order-modal__select-standard"
+                    value={formData.delai_facturation}
+                    onChange={(e) => handleInputChange('delai_facturation', Number(e.target.value))}
+                    disabled={isSubmitting}
+                  >
+                    <option value={30}>30 jours</option>
+                    <option value={45}>45 jours</option>
+                  </select>
+                </div>
               </div>
 
               <div className="confirm-order-modal__section">
