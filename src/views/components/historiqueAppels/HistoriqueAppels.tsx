@@ -5,7 +5,7 @@ import { useCallNotesDraft, useCampaign, useDialer, useFgaProspectNote, useProsp
 import { Loader } from '../loader/index.ts';
 import { ErrorMessage } from '../errorMessage/index.ts';
 import AppelCard from './AppelCard';
-import { CAMPAIGN_VARIANTS, formatDateTime, getCampaignVariant, supportsStandaloneProspectNotes } from '../../../utils/scripts/index.ts';
+import { formatDateTime, getCampaignUiConfig, supportsStandaloneProspectNotes } from '../../../utils/scripts/index.ts';
 
 export default function HistoriqueAppels() {
   const {
@@ -52,8 +52,9 @@ export default function HistoriqueAppels() {
   const grilleTarifaireEnvoyeeAt = currentProspect?.grille_tarifaire_envoyee_at ?? null;
   const plaquetteEnvoyeeAt = currentProspect?.plaquette_envoyee_at ?? null;
   const fgaPresentationEnvoyeeAt = currentProspect?.fga_presentation_envoyee_at ?? null;
-  const isCreantlCampaign = currentCampaign?.id_campagne === 15;
-  const isSalesCampaign = getCampaignVariant(currentCampaign) === CAMPAIGN_VARIANTS.vente;
+  const { actions } = getCampaignUiConfig(currentCampaign);
+  const showTarifs = actions.some(({ id }) => id === 'tarifs');
+  const showPlaquette = actions.some(({ id }) => id === 'plaquette');
   const isLiveCall = statut === 'appel_sortant'
     || statut === 'en_appel'
     || statut === 'qualification_en_cours'
@@ -96,17 +97,12 @@ export default function HistoriqueAppels() {
       <div className="historique-appels__header">
         <h2>Historique des appels</h2>
         <div className="historique-appels__header-meta">
-          {isSalesCampaign && (
-            <>
-              <span className={`historique-appels__tarifs ${grilleTarifaireEnvoyeeAt ? 'historique-appels__tarifs--sent' : 'historique-appels__tarifs--pending'}`}>
-                {grilleTarifaireLabel}
-              </span>
-              <span className={`historique-appels__tarifs ${plaquetteEnvoyeeAt ? 'historique-appels__tarifs--sent' : 'historique-appels__tarifs--pending'}`}>
-                {plaquetteLabel}
-              </span>
-            </>
+          {showTarifs && (
+            <span className={`historique-appels__tarifs ${grilleTarifaireEnvoyeeAt ? 'historique-appels__tarifs--sent' : 'historique-appels__tarifs--pending'}`}>
+              {grilleTarifaireLabel}
+            </span>
           )}
-          {isCreantlCampaign && (
+          {showPlaquette && (
             <span className={`historique-appels__tarifs ${plaquetteEnvoyeeAt ? 'historique-appels__tarifs--sent' : 'historique-appels__tarifs--pending'}`}>
               {plaquetteLabel}
             </span>

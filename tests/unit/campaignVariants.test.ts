@@ -43,6 +43,14 @@ test('getCampaignUiConfig retourne la matrice MMA attendue', () => {
   assert.equal(config.actions.find((action) => action.id === 'historique-offres')?.targetView, 'historique-rendez-vous');
 });
 
+test('Maison Hemel propose seulement la plaquette parmi les actions documentaires', () => {
+  const maisonHemel = getCampaignUiConfig({ id_campagne: 19, type_campagne: CAMPAIGN_VARIANTS.vente });
+  const cigales = getCampaignUiConfig({ id_campagne: 7, type_campagne: CAMPAIGN_VARIANTS.vente });
+
+  assert.deepEqual(maisonHemel.actions.filter(({ group }) => group === 'left').map(({ id }) => id), ['plaquette']);
+  assert.equal(cigales.actions.some(({ id }) => id === 'tarifs'), true);
+});
+
 test('getCampaignUiConfig expose la présentation uniquement pour FGA', () => {
   const fgaConfig = getCampaignUiConfig({ id_campagne: 11, type_campagne: CAMPAIGN_VARIANTS.lead_b2b });
   const mmaConfig = getCampaignUiConfig({ id_campagne: 2, type_campagne: CAMPAIGN_VARIANTS.lead_b2b });

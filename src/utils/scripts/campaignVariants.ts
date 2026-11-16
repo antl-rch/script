@@ -100,6 +100,8 @@ const LEAD_B2B_ACTIONS: CampaignActionConfig[] = [
 
 const FGA_CAMPAIGN_ID = 11;
 const CREANTL_CAMPAIGN_ID = 15;
+const MAISON_HEMEL_CAMPAIGN_ID = 19;
+const MAISON_HEMEL_ACTIONS = VENTE_ACTIONS.filter((action) => action.id !== 'tarifs');
 const CREANTL_LEAD_B2B_ACTIONS: CampaignActionConfig[] = [
   { id: 'plaquette', label: 'Plaquette', group: 'left' },
   ...LEAD_B2B_ACTIONS,
@@ -151,7 +153,9 @@ export function getCampaignUiConfig(campaign?: (Pick<Campaign, 'type_campagne'> 
     variant,
     actions: Number(campaign?.id_campagne) === 7
       ? [...VENTE_ACTIONS.slice(0, 2), { id: 'coffret-douceur-gourmand', label: 'Coffret Douceur & Gourmand', group: 'left' }, ...VENTE_ACTIONS.slice(2)]
-      : VENTE_ACTIONS,
+      : Number(campaign?.id_campagne) === MAISON_HEMEL_CAMPAIGN_ID
+        ? MAISON_HEMEL_ACTIONS
+        : VENTE_ACTIONS,
     showPaniers: true,
     commandeMode: 'sales',
     closingStatuts: VENTE_CLOSING_STATUTS,
