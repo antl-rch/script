@@ -1,5 +1,5 @@
 import type { CommercialFollowup, ViewType } from '../types/index.ts';
-import type { Campaign } from '../types/campaign.types';
+import type { Campaign, CampaignScriptDocument } from '../types/campaign.types';
 import type { StatutAppel } from '../types/appel.types';
 import { STATUT_APPEL_OPTIONS, type StatutAppelOption } from '../constants/appel.constants.ts';
 
@@ -18,13 +18,15 @@ export type ActionButtonId =
   | 'historique-appels'
   | 'historique-offres'
   | 'rendez-vous'
-  | 'commande';
+  | 'commande'
+  | `document:${string}`;
 
 export interface CampaignActionConfig {
   id: ActionButtonId;
   label: string;
   group: 'left' | 'right';
   targetView?: ViewType;
+  document?: CampaignScriptDocument;
 }
 
 export interface CampaignUiConfig {
@@ -132,17 +134,32 @@ export function isLeadB2BCampaign(campaign?: Pick<Campaign, 'type_campagne' | 'n
   return campaignName.includes('mma') || campaignName.includes('planete assurance') || campaignName.includes('assurance');
 }
 
-export function getCampaignUiConfig(campaign?: (Pick<Campaign, 'type_campagne'> & Partial<Pick<Campaign, 'id_campagne'>>) | null): CampaignUiConfig {
+type CampaignUiSource = Pick<Campaign, 'type_campagne'> & Partial<Pick<Campaign, 'id_campagne' | 'script_documents'>>;
+
+function withScriptDocuments(actions: CampaignActionConfig[], campaign?: CampaignUiSource | null): CampaignActionConfig[] {
+  const documents = campaign?.script_documents;
+  if (!documents) return actions;
+  const id = Number(campaign?.id_campagne);
+  const existing = [7, 15].includes(id) ? actions : actions.filter((action) => action.id !== 'plaquette');
+  return [
+    ...existing,
+    ...documents.map((document): CampaignActionConfig => ({
+      id: `document:${document.id}`, label: document.label, group: 'left', document,
+    })),
+  ];
+}
+
+export function getCampaignUiConfig(campaign?: CampaignUiSource | null): CampaignUiConfig {
   const variant = getCampaignVariant(campaign);
 
   if (variant === CAMPAIGN_VARIANTS.lead_b2b) {
     return {
       variant,
-      actions: Number(campaign?.id_campagne) === FGA_CAMPAIGN_ID
+      actions: withScriptDocuments(Number(campaign?.id_campagne) === FGA_CAMPAIGN_ID
         ? FGA_LEAD_B2B_ACTIONS
         : Number(campaign?.id_campagne) === CREANTL_CAMPAIGN_ID
           ? CREANTL_LEAD_B2B_ACTIONS
-          : LEAD_B2B_ACTIONS,
+          : LEAD_B2B_ACTIONS, campaign),
       showPaniers: false,
       commandeMode: 'placeholder',
       closingStatuts: LEAD_B2B_CLOSING_STATUTS,
@@ -151,11 +168,11 @@ export function getCampaignUiConfig(campaign?: (Pick<Campaign, 'type_campagne'> 
 
   return {
     variant,
-    actions: Number(campaign?.id_campagne) === 7
+    actions: withScriptDocuments(Number(campaign?.id_campagne) === 7
       ? [...VENTE_ACTIONS.slice(0, 2), { id: 'coffret-douceur-gourmand', label: 'Coffret Douceur & Gourmand', group: 'left' }, ...VENTE_ACTIONS.slice(2)]
       : Number(campaign?.id_campagne) === MAISON_HEMEL_CAMPAIGN_ID
         ? MAISON_HEMEL_ACTIONS
-        : VENTE_ACTIONS,
+        : VENTE_ACTIONS, campaign),
     showPaniers: true,
     commandeMode: 'sales',
     closingStatuts: VENTE_CLOSING_STATUTS,

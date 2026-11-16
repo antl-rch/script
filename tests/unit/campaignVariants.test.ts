@@ -59,6 +59,22 @@ test('getCampaignUiConfig expose la présentation uniquement pour FGA', () => {
   assert.equal(mmaConfig.actions.some((action) => action.id === 'fga-presentation'), false);
 });
 
+test('Script reprend les boutons configurés et conserve les actions spécialisées des Cigales', () => {
+  const campaign = { id_campagne: 19, type_campagne: CAMPAIGN_VARIANTS.vente };
+  const documents = [
+    { id: 'first', label: 'Plaquette', revision: 3 },
+    { id: 'second', label: 'Catalogue', revision: 0 },
+  ];
+  const actions = getCampaignUiConfig({ ...campaign, script_documents: documents }).actions;
+  assert.deepEqual(actions.filter(({ group }) => group === 'left').map(({ id, document }) => [id, document?.revision]), [
+    ['document:first', 3], ['document:second', 0],
+  ]);
+  assert.equal(getCampaignUiConfig({ ...campaign, script_documents: [] }).actions.some(({ group }) => group === 'left'), false);
+  const cigales = getCampaignUiConfig({ ...campaign, id_campagne: 7, script_documents: documents });
+  assert.equal(cigales.actions.some(({ id }) => id === 'coffret-douceur-gourmand'), true);
+  assert.equal(cigales.actions.some(({ id }) => id === 'document:second'), true);
+});
+
 test('getCampaignClosingOptions conserve le closing vente historique pour Cigales', () => {
   const options = getCampaignClosingOptions({ type_campagne: CAMPAIGN_VARIANTS.vente });
 

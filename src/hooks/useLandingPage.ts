@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useProspect, useCampaign, useApp, useCart, useDialer, useToast } from './index';
 import { closingService, type PendingClosing } from '../API/services';
 import { prospectService } from '../API/services/index.ts';
+import type { CampaignScriptDocument } from '../utils/types/index.ts';
 import {
   type ActionButtonId,
   getCampaignUiConfig,
@@ -39,6 +40,7 @@ export function useLandingPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isFgaPresentationPreviewOpen, setIsFgaPresentationPreviewOpen] = useState(false);
 
+  const documentDispatchPending = useRef(false);
   const previousProspectIdRef = useRef<number | null>(null);
   const wasCallActiveRef = useRef<boolean>(false);
 
@@ -328,7 +330,45 @@ export function useLandingPage() {
     if (confirmed) await sendCatalogue();
   };
 
+  const confirmCampaignDocument = async (document: CampaignScriptDocument) => {
+    const prospectId = currentProspect?.id_prospect;
+    const campaignId = currentCampaign?.id_campagne;
+    const recipientEmail = currentProspect?.email?.trim();
+    if (!prospectId || !campaignId || !recipientEmail) {
+      showToast('error', 'Le prospect doit avoir une adresse email renseignée.');
+      return;
+    }
+    if (documentDispatchPending.current) return;
+
+    documentDispatchPending.current = true;
+    try {
+      const confirmed = await confirm({
+        title: document.label,
+        message: `Envoyer « ${document.label} » à ${recipientEmail} ?`,
+        type: 'info',
+        confirmText: 'Envoyer',
+        cancelText: 'Annuler',
+      });
+      if (!confirmed) return;
+      const result = await prospectService.sendCampaignDocument(campaignId, document.id, {
+        prospectId, revision: document.revision, recipientEmail,
+      });
+      await loadProspect(prospectId);
+      showToast('success', result.simulated ? 'Envoi simulé en test' : `Document envoyé à ${result.recipientEmail}`);
+    } catch (error) {
+      showToast('error', error instanceof Error ? error.message : 'Le document n’a pas pu être envoyé.');
+    } finally {
+      documentDispatchPending.current = false;
+    }
+  };
+
   const handleAction = (actionId: ActionButtonId): void => {
+    if (actionId.startsWith('document:')) {
+      const document = campaignUi.actions.find(({ id }) => id === actionId)?.document;
+      if (document) void confirmCampaignDocument(document);
+      return;
+    }
+
     switch (actionId) {
       case 'plaquette':
         void handlePlaquetteClick();
