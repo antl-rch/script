@@ -393,6 +393,10 @@
   gap: vars.$spacing-md;
 }
 
+.confirm-order-modal__billing-delay {
+  margin-top: vars.$spacing-md;
+}
+
 .confirm-order-modal__payment-option {
   display: flex;
   align-items: center;

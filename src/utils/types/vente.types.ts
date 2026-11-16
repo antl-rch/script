@@ -70,11 +70,14 @@ export interface Vente {
   pays_facturation?: string;
   pays_livraison?: string;
   notes?: string;
+  delais_livraison?: DelaisLivraison | null;
+  delai_facturation?: DelaiFacturation | null;
   livraison_offerte?: boolean;
   plage_horaire_livraison?: string;
 }
 
-export type DelaisLivraison = 2 | 4;
+export type DelaisLivraison = 2 | 3 | 4;
+export type DelaiFacturation = 30 | 45;
 
 export interface CreateVenteData {
   id_prospect: number;
@@ -82,6 +85,7 @@ export interface CreateVenteData {
   id_appel?: number;
   mode_paiement?: ModePaiement;
   delais_livraison?: DelaisLivraison;
+  delai_facturation?: DelaiFacturation;
   raison_sociale_facturation?: string;
   adresse_facturation?: string;
   adresse_livraison?: string;

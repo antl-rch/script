@@ -19,6 +19,7 @@ const baseFormData = {
   mode_paiement: 'Cheque',
   notes: '  Merci de rappeler avant livraison  ',
   delais_livraison: 4 as const,
+  delai_facturation: 45 as const,
   civilite: 'Mme',
   nom_contact: 'Durand',
   plage_horaire_livraison: '  9h-12h  ',
@@ -127,6 +128,8 @@ test('buildVentePayload réutilise l’adresse de facturation si meme_adresse es
   assert.equal(payload.id_prospect, 17);
   assert.equal(payload.id_campagne, 4);
   assert.equal(payload.id_appel, 12);
+  assert.equal(payload.delais_livraison, 4);
+  assert.equal(payload.delai_facturation, 45);
   assert.equal(payload.raison_sociale_facturation, 'Cabinet Médical Alpha Facturation');
   assert.equal(payload.adresse_livraison, '10 Rue Des Lilas');
   assert.equal(payload.raison_sociale_livraison, 'Pharmacie Centrale Beta');
