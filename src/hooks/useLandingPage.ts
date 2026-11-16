@@ -230,7 +230,7 @@ export function useLandingPage() {
       return;
     }
 
-    if (!currentCampaign || !(isCoffret ? [7] : [7, 15]).includes(currentCampaign.id_campagne)) {
+    if (!currentCampaign || !(isCoffret ? [7] : [7, 15, 19]).includes(currentCampaign.id_campagne)) {
       showToast('error', 'Campagne indisponible pour cet envoi');
       return;
     }
