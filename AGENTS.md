@@ -1701,3 +1701,7 @@ Lorsqu'un changement du Script crée ou consomme un nouveau menu ou sous-menu US
 - `useQuiEstCe` affiche l’encart « Prospection web — novembre 2026 » uniquement pour la source `scrap_prospection_web--ND nov26`. Le site et l’agence sont modifiables via le mode Modifier ; l’URL exige HTTP/HTTPS et s’ouvre dans un nouvel onglet.
 - L’agence provient des noms distincts de `enrichissement_payload.scrap_prospection_web_nd_nov26.sites`, puis d’une correction explicite `agence` si présente. Une correction NULL signifie une suppression volontaire et ne réaffiche jamais la valeur importée. `UpdateProspectData.agence_site_web` transmet la correction à Olympe.
 - Vérification : `e2e/qui-est-ce-web-prospection.spec.ts` couvre l’encart selon la source, l’annulation, la validation de l’URL, l’enregistrement, l’effacement et le bouton de confirmation d’effectif.
+
+### Documents de campagne
+
+- La fiche prospect ajoute les boutons actifs exposés par `GET /campagnes/:id`. `useLandingPage` confirme le destinataire et envoie l’identifiant et la version du document. L’historique affiche le PDF et la version effectivement envoyés.

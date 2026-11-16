@@ -15,6 +15,12 @@ export interface CampaignConfiguration {
   creantl_booking?: { notify_external?: boolean } | null;
 }
 
+export interface CampaignScriptDocument {
+  id: string;
+  label: string;
+  revision: number;
+}
+
 export interface Campaign {
   id_campagne: number;
   nom_campagne: string;
@@ -30,6 +36,7 @@ export interface Campaign {
   autoriser_mobile?: boolean;
   modes_paiement?: ModePaiement[];
   bon_commande_config?: CampaignConfiguration | null;
+  script_documents?: CampaignScriptDocument[];
   logo_path?: string | null;
   logo_file_name?: string | null;
   created_at: string;

@@ -107,6 +107,13 @@ export default function HistoriqueAppels() {
               {plaquetteLabel}
             </span>
           )}
+          {currentProspect?.script_document_dispatches?.map((dispatch) => (
+            <span key={dispatch.id_prospect_document_dispatch} className="historique-appels__tarifs historique-appels__tarifs--sent">
+              {dispatch.script_document?.label ?? 'Plaquette'} · {dispatch.attachment_filename}
+              {dispatch.script_document ? ` · Version ${dispatch.script_document.revision}` : ''}
+              {' · '}{formatDateTime(dispatch.sent_at)}
+            </span>
+          ))}
           {isFgaCampaign && (
             <span className={`historique-appels__tarifs ${fgaPresentationEnvoyeeAt ? 'historique-appels__tarifs--sent' : 'historique-appels__tarifs--pending'}`}>
               {fgaPresentationLabel}
