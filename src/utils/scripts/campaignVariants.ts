@@ -134,13 +134,15 @@ export function isLeadB2BCampaign(campaign?: Pick<Campaign, 'type_campagne' | 'n
   return campaignName.includes('mma') || campaignName.includes('planete assurance') || campaignName.includes('assurance');
 }
 
-type CampaignUiSource = Pick<Campaign, 'type_campagne'> & Partial<Pick<Campaign, 'id_campagne' | 'script_documents'>>;
+type CampaignUiSource = Pick<Campaign, 'type_campagne'> & Partial<Pick<Campaign, 'id_campagne' | 'script_documents' | 'script_documents_version'>>;
 
 function withScriptDocuments(actions: CampaignActionConfig[], campaign?: CampaignUiSource | null): CampaignActionConfig[] {
   const documents = campaign?.script_documents;
   if (!documents) return actions;
   const id = Number(campaign?.id_campagne);
-  const existing = [7, 15].includes(id) ? actions : actions.filter((action) => action.id !== 'plaquette');
+  const existing = campaign?.script_documents_version === 2
+    ? actions.filter(({ group }) => group !== 'left')
+    : [7, 15].includes(id) ? actions : actions.filter((action) => action.id !== 'plaquette');
   return [
     ...existing,
     ...documents.map((document): CampaignActionConfig => ({

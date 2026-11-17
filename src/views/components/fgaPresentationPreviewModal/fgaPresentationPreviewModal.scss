@@ -145,3 +145,7 @@
     grid-template-columns: 3.25rem minmax(0, 1fr);
   }
 }
+
+.fga-presentation-preview-modal__message {
+  white-space: pre-wrap;
+}

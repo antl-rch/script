@@ -7,6 +7,12 @@ import { ErrorMessage } from '../errorMessage/index.ts';
 import AppelCard from './AppelCard';
 import { formatDateTime, getCampaignUiConfig, supportsStandaloneProspectNotes } from '../../../utils/scripts/index.ts';
 
+const labelsByDocumentType: Record<string, string> = {
+  catalogue: 'Tarifs',
+  coffret_douceur_gourmand: 'Coffret Douceur & Gourmand',
+  presentation_fga: 'Présentation',
+};
+
 export default function HistoriqueAppels() {
   const {
     currentProspect,
@@ -53,8 +59,12 @@ export default function HistoriqueAppels() {
   const plaquetteEnvoyeeAt = currentProspect?.plaquette_envoyee_at ?? null;
   const fgaPresentationEnvoyeeAt = currentProspect?.fga_presentation_envoyee_at ?? null;
   const { actions } = getCampaignUiConfig(currentCampaign);
-  const showTarifs = actions.some(({ id }) => id === 'tarifs');
-  const showPlaquette = actions.some(({ id }) => id === 'plaquette');
+  const dispatches = currentProspect?.script_document_dispatches ?? [];
+  const isCigales = Number(currentCampaign?.id_campagne) === 7;
+  const showTarifs = (actions.some(({ id }) => id === 'tarifs') || (isCigales && Boolean(grilleTarifaireEnvoyeeAt)))
+    && !dispatches.some(({ type_document }) => type_document === 'catalogue');
+  const showPlaquette = (actions.some(({ id }) => id === 'plaquette') || (isCigales && Boolean(plaquetteEnvoyeeAt)))
+    && !dispatches.some(({ type_document }) => type_document === 'plaquette' || type_document === 'plaquette_antl');
   const isLiveCall = statut === 'appel_sortant'
     || statut === 'en_appel'
     || statut === 'qualification_en_cours'
@@ -107,14 +117,14 @@ export default function HistoriqueAppels() {
               {plaquetteLabel}
             </span>
           )}
-          {currentProspect?.script_document_dispatches?.map((dispatch) => (
+          {dispatches.map((dispatch) => (
             <span key={dispatch.id_prospect_document_dispatch} className="historique-appels__tarifs historique-appels__tarifs--sent">
-              {dispatch.script_document?.label ?? 'Plaquette'} · {dispatch.attachment_filename}
+              {dispatch.script_document?.label ?? labelsByDocumentType[dispatch.type_document ?? ''] ?? 'Plaquette'} · {dispatch.attachment_filename}
               {dispatch.script_document ? ` · Version ${dispatch.script_document.revision}` : ''}
               {' · '}{formatDateTime(dispatch.sent_at)}
             </span>
           ))}
-          {isFgaCampaign && (
+          {isFgaCampaign && !dispatches.some(({ type_document }) => type_document === 'presentation_fga') && (
             <span className={`historique-appels__tarifs ${fgaPresentationEnvoyeeAt ? 'historique-appels__tarifs--sent' : 'historique-appels__tarifs--pending'}`}>
               {fgaPresentationLabel}
             </span>
