@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useProspect, useCampaign, useApp, useCart, useDialer, useToast } from './index';
+import { useProspect, useCampaign, useApp, useCart, useDialer, useToast, useUser } from './index';
 import { closingService, type PendingClosing } from '../API/services';
 import { prospectService } from '../API/services/index.ts';
 import type { CampaignScriptDocument } from '../utils/types/index.ts';
@@ -29,6 +29,7 @@ export function useLandingPage() {
   const { clearCart } = useCart();
   const { statut, callDuration, currentCampagneId, currentAppelId, currentAppelProspectId, currentOrigineAppel, currentRendezVousSourceId } = useDialer();
   const { showToast, confirm } = useToast();
+  const { user } = useUser();
   const isTestMode = searchParams.get('test') === 'true';
   const campaignUi = getCampaignUiConfig(currentCampaign);
 
@@ -303,7 +304,19 @@ export function useLandingPage() {
       return;
     }
 
-    setPreviewDocument(document);
+    if (document?.preview) {
+      const values = {
+        agent: [user?.prenom?.trim(), user?.nom?.trim()].filter(Boolean).join(' '),
+        date: new Date().toLocaleDateString('fr-FR', {
+          timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: 'numeric',
+        }),
+      };
+      const message = document.preview.message.replace(/{{(agent|date)}}/g,
+        (_, key: keyof typeof values) => values[key]);
+      setPreviewDocument({ ...document, preview: { ...document.preview, message } });
+    } else {
+      setPreviewDocument(document);
+    }
     setIsFgaPresentationPreviewOpen(true);
   };
 
