@@ -40,6 +40,8 @@ export function useLandingPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isFgaPresentationPreviewOpen, setIsFgaPresentationPreviewOpen] = useState(false);
 
+  const [previewDocument, setPreviewDocument] = useState<CampaignScriptDocument | null>(null);
+
   const documentDispatchPending = useRef(false);
   const previousProspectIdRef = useRef<number | null>(null);
   const wasCallActiveRef = useRef<boolean>(false);
@@ -295,19 +297,21 @@ export function useLandingPage() {
     if (confirmed) await sendFgaPresentation();
   };
 
-  const handleFgaPresentationClick = (): void => {
+  const handleFgaPresentationClick = (document: CampaignScriptDocument | null = null): void => {
     if (!currentProspect?.email) {
       showToast('warning', "Le prospect n'a pas d'adresse email renseignee");
       return;
     }
 
+    setPreviewDocument(document);
     setIsFgaPresentationPreviewOpen(true);
   };
 
   const handleFgaPresentationPreviewSend = (): void => {
     setIsFgaPresentationPreviewOpen(false);
     window.setTimeout(() => {
-      void requestFgaPresentationConfirmation();
+      if (previewDocument) void confirmCampaignDocument(previewDocument);
+      else void requestFgaPresentationConfirmation();
     }, 0);
   };
 
@@ -365,7 +369,8 @@ export function useLandingPage() {
   const handleAction = (actionId: ActionButtonId): void => {
     if (actionId.startsWith('document:')) {
       const document = campaignUi.actions.find(({ id }) => id === actionId)?.document;
-      if (document) void confirmCampaignDocument(document);
+      if (document?.preview) handleFgaPresentationClick(document);
+      else if (document) void confirmCampaignDocument(document);
       return;
     }
 
@@ -410,6 +415,7 @@ export function useLandingPage() {
     isModalOpen,
     setIsModalOpen,
     isFgaPresentationPreviewOpen,
+    previewDocument,
     handleFgaPresentationPreviewSend,
     handleFgaPresentationPreviewCancel,
     setView,

@@ -23,7 +23,7 @@ export default function LandingPage() {
     prospectFullName,
     currentProspect, currentView, isLoading, error, clearError,
     isModalOpen, setIsModalOpen,
-    isFgaPresentationPreviewOpen, handleFgaPresentationPreviewSend, handleFgaPresentationPreviewCancel,
+    isFgaPresentationPreviewOpen, previewDocument, handleFgaPresentationPreviewSend, handleFgaPresentationPreviewCancel,
     handlePlanAppels, handleObjections,
     handleOrderSuccess,
     setView, currentCampaign, campaignUi, isTestMode, handleAction,
@@ -121,6 +121,7 @@ export default function LandingPage() {
 
       <FgaPresentationPreviewModal
         isOpen={isFgaPresentationPreviewOpen}
+        document={previewDocument}
         prospect={currentProspect}
         onSend={handleFgaPresentationPreviewSend}
         onCancel={handleFgaPresentationPreviewCancel}

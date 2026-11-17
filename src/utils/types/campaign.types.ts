@@ -19,6 +19,7 @@ export interface CampaignScriptDocument {
   id: string;
   label: string;
   revision: number;
+  preview?: { subject: string; message: string; attachmentFilename: string };
 }
 
 export interface Campaign {
@@ -37,6 +38,7 @@ export interface Campaign {
   modes_paiement?: ModePaiement[];
   bon_commande_config?: CampaignConfiguration | null;
   script_documents?: CampaignScriptDocument[];
+  script_documents_version?: number;
   logo_path?: string | null;
   logo_file_name?: string | null;
   created_at: string;

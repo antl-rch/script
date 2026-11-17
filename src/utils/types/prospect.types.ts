@@ -83,6 +83,7 @@ export interface Prospect {
   plaquette_envoyee_at?: string | null;
   script_document_dispatches?: Array<{
     id_prospect_document_dispatch: number;
+    type_document?: string;
     script_document: { id: string; label: string; revision: number } | null;
     attachment_filename: string;
     sent_at: string;

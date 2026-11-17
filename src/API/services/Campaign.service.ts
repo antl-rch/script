@@ -17,7 +17,7 @@ export class CampaignService {
   }
 
   public async getCampaignById(id: number): Promise<CampaignModel> {
-    const response = await apiCalls.get<Campaign>(`/campagnes/${id}`);
+    const response = await apiCalls.get<Campaign>(`/campagnes/${id}?script_documents_version=2`);
     const data = throwIfApiError(response, 'Erreur lors de la récupération de la campagne');
     return CampaignModel.fromJSON(data);
   }

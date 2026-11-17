@@ -199,3 +199,17 @@ test('les coffrets sont disponibles uniquement pour Les Cigales', () => {
     assert.equal(getCampaignUiConfig({ id_campagne, type_campagne: 'vente' }).actions.some(action => action.id === 'coffret-douceur-gourmand'), false);
   }
 });
+
+test('la configuration complète remplace les boutons historiques, même s’ils sont tous masqués', () => {
+  const campaign = { id_campagne: 7, type_campagne: CAMPAIGN_VARIANTS.vente, script_documents_version: 2 };
+  const document = { id: 'catalogue', label: 'Catalogue pro', revision: 2 };
+  assert.deepEqual(
+    getCampaignUiConfig({ ...campaign, script_documents: [document] }).actions.filter(({ group }) => group === 'left'),
+    [{ id: 'document:catalogue', label: 'Catalogue pro', group: 'left', document }],
+  );
+  for (const id_campagne of [7, 11, 15, 19]) {
+    const type_campagne = id_campagne === 11 || id_campagne === 15 ? CAMPAIGN_VARIANTS.lead_b2b : CAMPAIGN_VARIANTS.vente;
+    const actions = getCampaignUiConfig({ ...campaign, id_campagne, type_campagne, script_documents: [] }).actions;
+    assert.equal(actions.some(({ group }) => group === 'left'), false);
+  }
+});
