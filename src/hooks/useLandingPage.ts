@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useProspect, useCampaign, useApp, useCart, useDialer, useToast } from './index';
+import { useProspect, useCampaign, useApp, useCart, useDialer, useToast, useUser } from './index';
 import { closingService, type PendingClosing } from '../API/services';
 import { prospectService } from '../API/services/index.ts';
+import type { CampaignScriptDocument } from '../utils/types/index.ts';
 import {
   type ActionButtonId,
   getCampaignUiConfig,
@@ -28,6 +29,7 @@ export function useLandingPage() {
   const { clearCart } = useCart();
   const { statut, callDuration, currentCampagneId, currentAppelId, currentAppelProspectId, currentOrigineAppel, currentRendezVousSourceId } = useDialer();
   const { showToast, confirm } = useToast();
+  const { user } = useUser();
   const isTestMode = searchParams.get('test') === 'true';
   const campaignUi = getCampaignUiConfig(currentCampaign);
 
@@ -39,6 +41,9 @@ export function useLandingPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isFgaPresentationPreviewOpen, setIsFgaPresentationPreviewOpen] = useState(false);
 
+  const [previewDocument, setPreviewDocument] = useState<CampaignScriptDocument | null>(null);
+
+  const documentDispatchPending = useRef(false);
   const previousProspectIdRef = useRef<number | null>(null);
   const wasCallActiveRef = useRef<boolean>(false);
 
@@ -293,19 +298,33 @@ export function useLandingPage() {
     if (confirmed) await sendFgaPresentation();
   };
 
-  const handleFgaPresentationClick = (): void => {
+  const handleFgaPresentationClick = (document: CampaignScriptDocument | null = null): void => {
     if (!currentProspect?.email) {
       showToast('warning', "Le prospect n'a pas d'adresse email renseignee");
       return;
     }
 
+    if (document?.preview) {
+      const values = {
+        agent: [user?.prenom?.trim(), user?.nom?.trim()].filter(Boolean).join(' '),
+        date: new Date().toLocaleDateString('fr-FR', {
+          timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: 'numeric',
+        }),
+      };
+      const message = document.preview.message.replace(/{{(agent|date)}}/g,
+        (_, key: keyof typeof values) => values[key]);
+      setPreviewDocument({ ...document, preview: { ...document.preview, message } });
+    } else {
+      setPreviewDocument(document);
+    }
     setIsFgaPresentationPreviewOpen(true);
   };
 
   const handleFgaPresentationPreviewSend = (): void => {
     setIsFgaPresentationPreviewOpen(false);
     window.setTimeout(() => {
-      void requestFgaPresentationConfirmation();
+      if (previewDocument) void confirmCampaignDocument(previewDocument);
+      else void requestFgaPresentationConfirmation();
     }, 0);
   };
 
@@ -328,7 +347,46 @@ export function useLandingPage() {
     if (confirmed) await sendCatalogue();
   };
 
+  const confirmCampaignDocument = async (document: CampaignScriptDocument) => {
+    const prospectId = currentProspect?.id_prospect;
+    const campaignId = currentCampaign?.id_campagne;
+    const recipientEmail = currentProspect?.email?.trim();
+    if (!prospectId || !campaignId || !recipientEmail) {
+      showToast('error', 'Le prospect doit avoir une adresse email renseignée.');
+      return;
+    }
+    if (documentDispatchPending.current) return;
+
+    documentDispatchPending.current = true;
+    try {
+      const confirmed = await confirm({
+        title: document.label,
+        message: `Envoyer « ${document.label} » à ${recipientEmail} ?`,
+        type: 'info',
+        confirmText: 'Envoyer',
+        cancelText: 'Annuler',
+      });
+      if (!confirmed) return;
+      const result = await prospectService.sendCampaignDocument(campaignId, document.id, {
+        prospectId, revision: document.revision, recipientEmail,
+      });
+      await loadProspect(prospectId);
+      showToast('success', result.simulated ? 'Envoi simulé en test' : `Document envoyé à ${result.recipientEmail}`);
+    } catch (error) {
+      showToast('error', error instanceof Error ? error.message : 'Le document n’a pas pu être envoyé.');
+    } finally {
+      documentDispatchPending.current = false;
+    }
+  };
+
   const handleAction = (actionId: ActionButtonId): void => {
+    if (actionId.startsWith('document:')) {
+      const document = campaignUi.actions.find(({ id }) => id === actionId)?.document;
+      if (document?.preview) handleFgaPresentationClick(document);
+      else if (document) void confirmCampaignDocument(document);
+      return;
+    }
+
     switch (actionId) {
       case 'plaquette':
         void handlePlaquetteClick();
@@ -370,6 +428,7 @@ export function useLandingPage() {
     isModalOpen,
     setIsModalOpen,
     isFgaPresentationPreviewOpen,
+    previewDocument,
     handleFgaPresentationPreviewSend,
     handleFgaPresentationPreviewCancel,
     setView,

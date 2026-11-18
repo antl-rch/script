@@ -81,6 +81,13 @@ export interface Prospect {
   suivi_commercial_en_cours?: CommercialFollowup | null;
   grille_tarifaire_envoyee_at?: string | null;
   plaquette_envoyee_at?: string | null;
+  script_document_dispatches?: Array<{
+    id_prospect_document_dispatch: number;
+    type_document?: string;
+    script_document: { id: string; label: string; revision: number } | null;
+    attachment_filename: string;
+    sent_at: string;
+  }>;
   fga_presentation_envoyee_at?: string | null;
   source?: string | null;
   enrichissement_payload?: {

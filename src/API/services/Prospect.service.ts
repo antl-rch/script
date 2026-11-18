@@ -8,6 +8,7 @@ import { buildProspectOptoutPayload } from './prospectPayloads.ts';
 export interface ProspectDocumentDispatch {
   recipientEmail: string;
   sentAt: string;
+  simulated?: boolean;
 }
 
 export class ProspectService {
@@ -67,6 +68,15 @@ export class ProspectService {
       timeout: 90000,
     });
     return throwIfApiError(response, 'Erreur lors de l\'envoi de la plaquette');
+  }
+
+  public async sendCampaignDocument(campaignId: number, documentId: string,
+    input: { prospectId: number; revision: number; recipientEmail: string }): Promise<ProspectDocumentDispatch> {
+    const response = await apiCalls.post<ProspectDocumentDispatch>(
+      `/campagnes/${campaignId}/documents-script/${encodeURIComponent(documentId)}/envoyer`,
+      input, { timeout: 90000 },
+    );
+    return throwIfApiError(response, 'Erreur lors de l’envoi du document');
   }
 
   public async sendFgaPresentation(id: number): Promise<ProspectDocumentDispatch> {

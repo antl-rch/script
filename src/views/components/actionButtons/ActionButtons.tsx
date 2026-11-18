@@ -11,7 +11,7 @@ interface ActionButtonsProps {
   onAction: (actionId: ActionButtonId) => void;
 }
 
-const ICONS: Record<ActionButtonId, ReactNode> = {
+const ICONS: Partial<Record<ActionButtonId, ReactNode>> = {
   plaquette: <FaFilePdf />,
   'coffret-douceur-gourmand': <FaFilePdf />,
   'fga-presentation': <FaFilePdf />,
@@ -39,7 +39,7 @@ function renderButton(
       className={isActive ? 'btn-active' : ''}
       type="button"
     >
-      {ICONS[button.id]} {button.label}
+      {ICONS[button.id] ?? <FaFilePdf />} {button.label}
     </Button>
   );
 }

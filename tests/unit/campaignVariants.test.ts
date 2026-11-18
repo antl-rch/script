@@ -59,6 +59,22 @@ test('getCampaignUiConfig expose la présentation uniquement pour FGA', () => {
   assert.equal(mmaConfig.actions.some((action) => action.id === 'fga-presentation'), false);
 });
 
+test('Script reprend les boutons configurés et conserve les actions spécialisées des Cigales', () => {
+  const campaign = { id_campagne: 19, type_campagne: CAMPAIGN_VARIANTS.vente };
+  const documents = [
+    { id: 'first', label: 'Plaquette', revision: 3 },
+    { id: 'second', label: 'Catalogue', revision: 0 },
+  ];
+  const actions = getCampaignUiConfig({ ...campaign, script_documents: documents }).actions;
+  assert.deepEqual(actions.filter(({ group }) => group === 'left').map(({ id, document }) => [id, document?.revision]), [
+    ['document:first', 3], ['document:second', 0],
+  ]);
+  assert.equal(getCampaignUiConfig({ ...campaign, script_documents: [] }).actions.some(({ group }) => group === 'left'), false);
+  const cigales = getCampaignUiConfig({ ...campaign, id_campagne: 7, script_documents: documents });
+  assert.equal(cigales.actions.some(({ id }) => id === 'coffret-douceur-gourmand'), true);
+  assert.equal(cigales.actions.some(({ id }) => id === 'document:second'), true);
+});
+
 test('getCampaignClosingOptions conserve le closing vente historique pour Cigales', () => {
   const options = getCampaignClosingOptions({ type_campagne: CAMPAIGN_VARIANTS.vente });
 
@@ -181,5 +197,19 @@ test('les coffrets sont disponibles uniquement pour Les Cigales', () => {
   assert.equal(cigales.actions.find(action => action.id === 'coffret-douceur-gourmand')?.label, 'Coffret Douceur & Gourmand');
   for (const id_campagne of [8, 11, 15]) {
     assert.equal(getCampaignUiConfig({ id_campagne, type_campagne: 'vente' }).actions.some(action => action.id === 'coffret-douceur-gourmand'), false);
+  }
+});
+
+test('la configuration complète remplace les boutons historiques, même s’ils sont tous masqués', () => {
+  const campaign = { id_campagne: 7, type_campagne: CAMPAIGN_VARIANTS.vente, script_documents_version: 2 };
+  const document = { id: 'catalogue', label: 'Catalogue pro', revision: 2 };
+  assert.deepEqual(
+    getCampaignUiConfig({ ...campaign, script_documents: [document] }).actions.filter(({ group }) => group === 'left'),
+    [{ id: 'document:catalogue', label: 'Catalogue pro', group: 'left', document }],
+  );
+  for (const id_campagne of [7, 11, 15, 19]) {
+    const type_campagne = id_campagne === 11 || id_campagne === 15 ? CAMPAIGN_VARIANTS.lead_b2b : CAMPAIGN_VARIANTS.vente;
+    const actions = getCampaignUiConfig({ ...campaign, id_campagne, type_campagne, script_documents: [] }).actions;
+    assert.equal(actions.some(({ group }) => group === 'left'), false);
   }
 });
